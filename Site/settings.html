@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Hitter</title>
+	<style>
+		body {
+			background-image: url(img/2.jpg);
+			position: relative;
+			margin: -10px;
+			font-family: Arial;
+			font-size: 12px;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		@font-face {
+			font-family: GodOfWar;
+			src: url(GODOFWAR.TTF);
+		}
+
+		.console-box {
+			position: absolute;
+			top: 50px;
+			left: 50px;
+			width: 409px;
+			height: calc(1.2em* 32);
+			box-shadow: -3px 5px 50px 15px #343a45;
+			background-color: #30303011;
+			color: #f70000;
+			padding: 12px;
+			border-radius: 14px;
+			font-family: monospace;
+			white-space: pre-wrap;
+			overflow: hidden;
+			font-size: 14px;
+			align-content: end;
+		}
+
+		.container {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+			z-index: 2;
+		}
+
+		.login-form {
+			position: absolute;
+			margin-left: 20px;
+			bottom: 20px;
+			width: 272px;
+			background-color: transparent;
+			padding: 0px;
+			border-radius: 25px;
+		}
+
+		.login-form h2 {
+			text-align: center;
+			margin-bottom: 20px;
+			color: #1100fdbd;
+			text-shadow: rebeccapurple 0 0 40px;
+		}
+
+		.input-field {
+			width: calc(100% - 20px);
+			padding: 10px;
+			margin-bottom: 20px;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+			background-color: #4242427a;
+			color: #ffffff;
+		}
+
+		.submit-button {
+			width: 100%;
+			padding: 10px;
+			background-color: #2109e98c;
+			box-shadow: 0 0 50px 8px #3d346e;
+			border: none;
+			border-radius: 5px;
+			color: #ffffff;
+			font-size: 16px;
+			cursor: pointer;
+		}
+
+		#myVideo {
+			position: absolute;
+			right: 0;
+			bottom: -45px;
+			width: 100%;
+			height: 122%;
+			margin-left: 0px;
+		}
+
+		.change-wallpaper-form {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			display: flex;
+			align-items: center;
+		}
+
+		.input-wallpaper {
+			width: 300px;
+			padding: 10px;
+			border: 1px solid #ccc;
+			border-radius: 5px;
+			margin-right: 10px;
+			background-color: #4242427a;
+			color: #ffffff;
+		}
+
+		.change-wallpaper-button {
+			padding: 10px 20px;
+			background-color: #2109e98c;
+			color: #ffffff;
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+			box-shadow: 0 0 50px 8px #3d346e;
+			font-size: 16px;
+		}
+	</style>
+</head>
+
+<body>
+	<video autoplay muted loop id="myVideo">
+		<source src="https://motionbgs.com/dl/4k/1397" type="video/mp4">
+	</video>
+	<div class="console-box" id="consoleBox"></div>
+	<div class="container">
+		<form class="login-form" id="settingsForm">
+			<h2>Settings</h2>
+			<input type="text" class="input-field" id="proxy" placeholder="Proxy" value="PROXYVAL" />
+			<input type="text" class="input-field" id="bin" placeholder="BIN" value="BINVAL" />
+			<button type="submit" class="submit-button">Save</button>
+		</form>
+	</div>
+	<div class="change-wallpaper-form">
+		<input type="text" class="input-wallpaper" id="wallpaperUrl" placeholder="Enter wallpaper URL" />
+		<button class="change-wallpaper-button" id="changeWallpaperButton">Change Wallpaper</button>
+	</div>
+
+	<script>
+		let currentLogs = [];
+
+		async function updateLogs() {
+			try {
+				const response = await fetch('/logs');
+				const logs = await response.json();
+
+				if (JSON.stringify(logs) !== JSON.stringify(currentLogs)) {
+					consoleBox.innerHTML = '';
+
+					logs.forEach((log) => {
+						let firstColon = log.indexOf(':');
+						let secondColon = log.indexOf(':', firstColon + 1);
+						if (firstColon !== -1 && secondColon !== -1) {
+							let color = log.substring(0, firstColon);
+							let glow = log.substring(firstColon + 1, secondColon);
+							let text = log.substring(secondColon + 1);
+							let logElement = document.createElement("div");
+							logElement.style.color = color;
+							logElement.style.textShadow = `${glow} 0px 0px 15px`;
+							logElement.textContent = text;
+							consoleBox.appendChild(logElement);
+						} else {
+							consoleBox.innerHTML += `${log}<br/>`;
+						}
+					});
+
+					currentLogs = logs;
+				}
+			} catch (error) {
+				console.error('Failed to fetch logs:', error);
+			}
+		}
+
+		updateLogs();
+		setInterval(updateLogs, 1000);
+
+		document.getElementById("settingsForm").addEventListener("submit", async function (event) {
+			event.preventDefault();
+			const proxy = document.getElementById("proxy").value;
+			const bin = document.getElementById("bin").value;
+			const settings = { proxy: proxy, bin: bin };
+
+			const response = await fetch("/saveSettings", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(settings),
+			});
+
+			const responseBody = await response.text();
+
+			if (responseBody === "OK") {
+				document.location.reload();
+			}
+		});
+
+		document.getElementById("changeWallpaperButton").addEventListener("click", function () {
+			const wallpaperUrl = document.getElementById("wallpaperUrl").value;
+			if (wallpaperUrl) {
+				const myVideo = document.getElementById("myVideo");
+				myVideo.querySelector("source").src = wallpaperUrl;
+				myVideo.load();
+				myVideo.play();
+			}
+		});
+	</script>
+</body>
+
+</html>
